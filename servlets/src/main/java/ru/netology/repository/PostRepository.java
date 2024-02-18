@@ -3,52 +3,63 @@ package ru.netology.repository;
 import org.springframework.stereotype.Repository;
 import ru.netology.exception.NotFoundException;
 import ru.netology.model.Post;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
-class PostRepository implements IPostRepository {
-    private final ConcurrentHashMap<Long, Post> posts;
-    private final AtomicLong idCounter = new AtomicLong(0L);
+public class PostRepository {
 
-    public PostRepository()  {
-        posts  = new ConcurrentHashMap<>();
+    private final Map<Long, Post> listPostsMap;
+    private final AtomicLong counter;
+
+    public PostRepository() {
+        listPostsMap = new ConcurrentHashMap<>();
+        counter = new AtomicLong();
     }
 
     public List<Post> all() {
-        return new ArrayList<>(posts.values());
+        if (listPostsMap.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            Collection<Post> values = listPostsMap.values();
+            return values.stream().toList();
+        }
     }
 
     public Optional<Post> getById(long id) {
-        return Optional.ofNullable(posts.get(id));
-
+        for(Map.Entry<Long, Post> item : listPostsMap.entrySet()) {
+            if (item.getKey().equals(id)) {
+                return  Optional.of(item.getValue());
+            }
+        }
+        return Optional.empty();
     }
 
     public Post save(Post post) {
-        if(post.getId() != 0) {
-            if (!posts.containsKey(post.getId())) {
-                throw new NotFoundException();
-            } else {
-                posts.put(post.getId(), post);
-            }
-        }
-
         if (post.getId() == 0) {
-            var newId = idCounter.incrementAndGet();
-            post.setId(newId);
-            posts.put(post.getId(), post);
+            for(Map.Entry<Long, Post> item : listPostsMap.entrySet()) {
+                if ((counter.get() + 1) == item.getKey()) {
+                    counter.incrementAndGet();
+                }
+            }
+            post.setId(counter.incrementAndGet());
+            listPostsMap.put(post.getId(), post);
+        } else {
+            listPostsMap.put(post.getId(), post);
         }
         return post;
     }
 
     public void removeById(long id) {
-        if (posts.containsKey(id)) {
-            posts.remove(id);
+        if (listPostsMap.containsKey(id)) {
+            listPostsMap.remove(id);
+            if (counter.get() > id) {
+                counter.set(id - 1);
+            }
         } else {
-            throw new NotFoundException("Wrong id");
+            throw new NotFoundException("Пост с id: " + id + " не найден");
         }
     }
 }
