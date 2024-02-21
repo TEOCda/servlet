@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
-class PostRepository implements IPostRepository {
+public class PostRepository implements IPostRepository {
     private final ConcurrentHashMap<Long, Post> posts;
     private final AtomicLong idCounter = new AtomicLong(0L);
 
